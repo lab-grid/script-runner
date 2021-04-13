@@ -1,0 +1,68 @@
+{
+    "command": [
+        "Rscript",
+        "--vanilla",
+        "code/countAmpliconsAWS.R",
+        "--rundir",
+        "$RUNDIR/",
+        "--basespaceID",
+        "$BASESPACE_ID",
+        "--threads",
+        "8",
+        "--season",
+        "$SEASON"
+    ],
+    "inputs": {
+        "path_args": [
+            {
+                "env_var_name": "BASESPACE_ID",
+                "path_regex": "([^/]+)",
+                "path_regex_match_group": 1
+            }
+        ],
+        "query_args": [
+            {
+                "env_var_name": "SEASON",
+                "query_var_name": "season"
+            }
+        ],
+        "body_args": []
+    },
+    "outputs": {
+        "results": {
+            "kind": "file",
+            "format": "csv",
+            "input_path": "LIMS_results.csv",
+            "remapped_columns": [
+                {
+                    "output_name": "plateIndex",
+                    "input_name": "Plate_384_Number",
+                    "skip_list": ["NA"]
+                },
+                {
+                    "output_name": "plateCell",
+                    "input_name": "Sample_Well",
+                    "skip_list": ["NA"]
+                },
+                {
+                    "output_name": "marker1",
+                    "input_name": "index",
+                    "skip_list": ["NA"]
+                },
+                {
+                    "output_name": "marker2",
+                    "input_name": "index2",
+                    "skip_list": ["NA"]
+                },
+                {
+                    "output_name": "classification",
+                    "input_name": "classification"
+                }
+            ]
+        },
+        "attachments": [
+            "*.pdf",
+            "LIMS_results.csv"
+        ]
+    }
+}

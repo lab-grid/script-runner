@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+celery = "*"
+flask = "*"
+flask-cors = "*"
+flask-restx = "*"
+jsonpath-ng = "*"
+python-jose = "*"
+pydantic = "*"
+redis = "*"
+typing_extensions = "*"
+Werkzeug = "*"
+gunicorn = "*"
+
+[dev-packages]
+pylint = "*"
+pylint-flask = "*"
+pydocstyle = "*"
+pipenv-setup = "*"

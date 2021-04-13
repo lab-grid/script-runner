@@ -1,0 +1,8 @@
+*.pyc
+__pycache__
+
+default.cfg.template
+.env
+example.env
+example.cfg
+.github

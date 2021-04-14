@@ -5,7 +5,7 @@ FROM python:${PYTHON_IMAGE_TAG}}
 
 WORKDIR /app
 
-RUN pip install script_runner==${SCRIPT_RUNNER_VERSION}
+RUN pip install script-runner-api==${SCRIPT_RUNNER_VERSION}
 
 COPY ./entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh
@@ -13,8 +13,7 @@ RUN chmod +x /entrypoint.sh
 
 COPY ./ .
 
-ENV PYTHONPATH="${RBASE}:${PYTHONPATH}"
-ENV FLASK_APP=/app/main.py
+ENV FLASK_APP=script_runner.main:app
 ENV SERVER_VERSION=$SERVER_VERSION
 
 ENTRYPOINT [ "/entrypoint.sh" ]

@@ -3,7 +3,10 @@ from distutils.core import setup
 
 setup(
     name="script_runner",
-    packages=["script_runner"],
+    packages=[
+        "script_runner",
+        "script_runner.api",
+    ],
     scripts=["script_runner/main.py"],
     version=os.environ.get("SCRIPT_RUNNER_VERSION", "latest"),
     license="MIT",

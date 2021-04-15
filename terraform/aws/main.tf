@@ -90,9 +90,7 @@ module "swabseq_analysis" {
 
   stack_name = var.stack_name
 
-  auth0_domain    = var.auth0_domain
-  auth0_audience  = var.auth0_audience
-  auth0_client_id = var.auth0_client_id
+  auth_provider = "none"
 
   ecs_task_execution_role_arn  = aws_iam_role.labflow_role.arn
   ecs_task_execution_role_name = aws_iam_role.labflow_role.name
@@ -106,6 +104,6 @@ module "swabseq_analysis" {
   image     = "labflow/swabseq-analysis-server-example"
   image_tag = var.image_tag
 
-  dns_name    = var.dns_name
-  dns_zone_id = var.dns_zone_id
+  dns_subdomain = var.dns_subdomain
+  dns_zone_id   = var.dns_zone_id
 }

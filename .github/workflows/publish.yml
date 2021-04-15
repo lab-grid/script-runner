@@ -1,0 +1,234 @@
+name: Publish docker images
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+jobs:
+  publish-pypi:
+    name: Publish script-runner to pypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish-docker:
+    name: Publish script-runner to dockerhub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Prepare
+        id: prep
+        run: |
+          PYTHON_IMAGE_TAG=alpine
+          DOCKER_IMAGE=labflow/script-runner
+          VERSION=latest
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+          elif [[ $GITHUB_REF == refs/pull/* ]]; then
+            VERSION=pr-${{ github.event.number }}
+          fi
+          TAGS="${DOCKER_IMAGE}:${PYTHON_IMAGE_TAG}-latest,${DOCKER_IMAGE}:${PYTHON_IMAGE_TAG}-${VERSION}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAGS="$TAGS,${DOCKER_IMAGE}:${PYTHON_IMAGE_TAG}-sha-${GITHUB_SHA::8}"
+          fi
+          echo ::set-output name=version::${VERSION}
+          echo ::set-output name=tags::${TAGS}
+          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo ::set-output name=hashtag::"sha-${GITHUB_SHA::8}"
+          echo ::set-output name=pyversion::"${PYTHON_IMAGE_TAG}"
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Cache Docker layers
+        uses: actions/cache@v2.1.4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.prep.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            SCRIPT_RUNNER_VERSION=${{ steps.prep.outputs.version }}
+            PYTHON_IMAGE_TAG=${{ steps.prep.outputs.pyversion }}
+
+  deploy-aws-example:
+    name: Deploy swabseq-analysis-example to AWS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-1
+
+      - name: Setup Terraform tfvars
+        uses: nowactions/envsubst@v1
+        working-directory: ./examples/aws
+        with:
+          input: ./example.tfvars
+          output: ./terraform.tfvars
+        env:
+          DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
+          DNS_ZONE_ID: ${{secrets.DNS_ZONE_ID}}
+
+      - name: Setup Terraform
+        working-directory: ./examples/aws
+        uses: hashicorp/setup-terraform@v1
+
+      # - name: Terraform Format
+      #   id: fmt
+      #   run: terraform fmt -check
+
+      - name: Terraform Init
+        id: init
+        working-directory: ./examples/aws
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ./examples/aws
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      - uses: actions/github-script@v3
+        working-directory: ./examples/aws
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`${process.env.PLAN}\`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+
+            await github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        working-directory: ./examples/aws
+        if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: terraform apply -auto-approve
+
+  deploy-azure-example:
+    name: Deploy swabseq-analysis-example to Azure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure Azure credentials
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Terraform tfvars
+        uses: nowactions/envsubst@v1
+        working-directory: ./examples/azure
+        with:
+          input: ./example.tfvars
+          output: ./terraform.tfvars
+        env:
+          DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
+          DNS_ZONE_NAME: ${{secrets.DNS_ZONE_NAME}}
+
+      - name: Setup Terraform
+        working-directory: ./examples/azure
+        uses: hashicorp/setup-terraform@v1
+
+      # - name: Terraform Format
+      #   id: fmt
+      #   run: terraform fmt -check
+
+      - name: Terraform Init
+        id: init
+        working-directory: ./examples/azure
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ./examples/azure
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      - uses: actions/github-script@v3
+        working-directory: ./examples/azure
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`${process.env.PLAN}\`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+
+            await github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        working-directory: ./examples/azure
+        if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: terraform apply -auto-approve
+

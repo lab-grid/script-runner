@@ -8,23 +8,11 @@ variable "stack_name" {
   default = "swabseq-analysis-example"
 }
 
-variable "dns_name" {
+variable "dns_subdomain" {
   type = string
 }
 
 variable "dns_zone_id" {
-  type = string
-}
-
-variable "auth0_domain" {
-  type = string
-}
-
-variable "auth0_audience" {
-  type = string
-}
-
-variable "auth0_client_id" {
   type = string
 }
 

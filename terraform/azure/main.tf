@@ -4,8 +4,8 @@ provider "azurerm" {
 
 terraform {
   backend "azurerm" {
-    resource_group_name  = "swabseq-analysis-example-rg"
-    storage_account_name = "swabseq-analysis-example-tf"
+    resource_group_name  = "labgrid"
+    storage_account_name = "labgridtfstate"
     container_name       = "swabseq-analysis-example-tfstate"
     key                  = "prod.terraform.tfstate"
   }
@@ -45,7 +45,6 @@ module "vnet" {
 module "swabseq_analysis" {
   source = "github.com/lab-grid/terraform-azurerm-container-instances-script-runner"
 
-  region              = var.region
   location            = var.location
   resource_group_name = azurerm_resource_group.swabseq_analysis_example.name
 
@@ -55,14 +54,11 @@ module "swabseq_analysis" {
 
   stack_name = var.stack_name
 
-  auth0_domain    = var.auth0_domain
-  auth0_audience  = var.auth0_audience
-  auth0_client_id = var.auth0_client_id
+  auth_provider = "none"
 
   image     = "labflow/swabseq-analysis-server-example"
   image_tag = var.image_tag
 
   dns_subdomain = var.dns_subdomain
-  dns_domain    = var.dns_domain
   dns_zone_name = var.dns_zone_name
 }

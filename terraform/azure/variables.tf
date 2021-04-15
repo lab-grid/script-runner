@@ -1,31 +1,11 @@
-variable "aws_region" {
+variable "location" {
   type    = string
-  default = "us-west-1"
+  default = "westus"
 }
 
 variable "stack_name" {
   type    = string
   default = "swabseq-analysis-example"
-}
-
-variable "dns_name" {
-  type = string
-}
-
-variable "dns_zone_id" {
-  type = string
-}
-
-variable "auth0_domain" {
-  type = string
-}
-
-variable "auth0_audience" {
-  type = string
-}
-
-variable "auth0_client_id" {
-  type = string
 }
 
 variable "image_tag" {
@@ -34,12 +14,8 @@ variable "image_tag" {
 }
 
 variable "dns_subdomain" {
-  type = string
-}
-
-variable "dns_domain" {
   type        = string
-  description = "DNS name for this instance of script-runner. Must match 'dns_zone_id'."
+  description = "Subdomain to prefix to dns_zone_name. API will be served under this subdomain."
 }
 
 variable "dns_zone_name" {
@@ -48,22 +24,26 @@ variable "dns_zone_name" {
 }
 
 variable "redis_subnet_name" {
-  type = string
-  default = "redis-subnet"
+  type        = string
+  default     = "redis-subnet"
+  description = "Name of the redis subnet that will be created."
 }
 
 variable "server_subnet_name" {
-  type = string
-  default = "server-subnet"
+  type        = string
+  default     = "server-subnet"
+  description = "Name of the server subnet that will be created."
 }
 
 variable "worker_subnet_name" {
-  type = string
-  default = "worker-subnet"
+  type        = string
+  default     = "worker-subnet"
+  description = "Name of the worker subnet that will be created."
 }
 
 variable "tags" {
   type = map(string)
+
   default = {
     Terraform   = "true"
     Environment = "dev"

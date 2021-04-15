@@ -8,7 +8,7 @@ FROM rocker/verse:3.6.3
 # get and install bcl2fastq
 RUN cd /tmp \
     && wget https://www.dropbox.com/s/idi0xfu0thurk7q/bcl2fastq2-v2-20-0-linux-x86-64.zip \
-    && unzip bcl2fastq2-v2-20-0-linux-x86-64.zip -p \
+    && unzip -p bcl2fastq2-v2-20-0-linux-x86-64.zip bcl2fastq2-v2.20.0.422-Linux-x86_64.rpm \
     | tar xvz -C / usr/local/bin/bcl2fastq \
     && rm /tmp/bcl2fastq2*
 

@@ -4,7 +4,7 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "swabseq-analysis-example-tf-backend"
+    bucket = "labflow-tf-backend"
     key    = "swabseq-analysis-example-tf"
     region = "us-west-1"
   }

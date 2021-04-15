@@ -193,6 +193,7 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
+            SCRIPT_RUNNER_VERSION=${{ steps.prep.outputs.version }}
             SERVER_VERSION=${{ steps.prep.outputs.hashtag }}
 
   deploy-aws-example:

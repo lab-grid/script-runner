@@ -3,8 +3,8 @@ services:
   server:
     image: labflow/script-runner-example:latest
     build:
-      dockerfile: ./docker/Dockerfile.example
-      context: .
+      dockerfile: ./Dockerfile.example
+      context: ./docker
       args:
         SERVER_VERSION: local+devcontainer
     command: "python3 -m flask run --host=0.0.0.0 --port=5000"
@@ -23,8 +23,8 @@ services:
   worker:
     image: labflow/script-runner-example:latest
     build:
-      context: .
-      dockerfile: ./docker/Dockerfile.example
+      dockerfile: ./Dockerfile.example
+      context: ./docker
       args:
         SERVER_VERSION: local+devcontainer
     command: "python3 -m celery -A script_runner.analysis worker"

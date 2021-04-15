@@ -41,6 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel setuptools pipenv
+          rm ./script_runner/version.py
       #     pipenv lock --dev --requirements > requirements.dev.txt
       #     pip install -r requirements.txt
       # - name: Lint with flake8
@@ -52,11 +53,16 @@ jobs:
       # - name: Test with pytest
       #   run: |
       #     pytest
+      - name: Inject package version
+        uses: nowactions/envsubst@v1
+        with:
+          input: ./script_runner/version.py.tmpl
+          output: ./script_runner/version.py
+        env:
+          SCRIPT_RUNNER_VERSION: ${{ steps.prep.outputs.version }}
       - name: Build python package
         run: |
           python setup.py sdist
-        env:
-          SCRIPT_RUNNER_VERSION: ${{ steps.prep.outputs.version }}
       - name: Deploy to PyPI
         if: success() && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -131,7 +137,7 @@ jobs:
   publish-docker-example:
     needs: publish-pypi
     if: startsWith(github.ref, 'refs/tags')
-    name: Build and push script-runner-server-example docker image
+    name: Publish script-runner-example to dockerhub
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -192,7 +198,7 @@ jobs:
   deploy-aws-example:
     needs: publish-docker-example
     if: startsWith(github.ref, 'refs/tags')
-    name: Deploy swabseq-analysis-example to AWS
+    name: Deploy script-runner-example to AWS
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -295,7 +301,7 @@ jobs:
   deploy-azure-example:
     needs: publish-docker-example
     if: startsWith(github.ref, 'refs/tags')
-    name: Deploy swabseq-analysis-example to Azure
+    name: Deploy script-runner-example to Azure
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo

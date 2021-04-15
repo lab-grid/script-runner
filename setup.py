@@ -1,6 +1,15 @@
 import os
 from distutils.core import setup
 
+def get_version():
+    """
+    Gets the latest version number out of the package,
+    saving us from maintaining it in multiple places.
+    """
+    local_results = {}
+    execfile('script_runner/version.py', {}, local_results)
+    return local_results['__version__']
+
 setup(
     name="script-runner-api",
     packages=[
@@ -8,7 +17,7 @@ setup(
         "script_runner.api",
     ],
     scripts=["script_runner/main.py"],
-    version=os.environ.get("SCRIPT_RUNNER_VERSION", "latest"),
+    version=get_version(),
     license="MIT",
     description="Provides an API server + celery worker module for running arbitrary scripts.",
     author="Robert Chu",

@@ -91,20 +91,19 @@ jobs:
 
       - name: Setup Terraform tfvars
         uses: nowactions/envsubst@v1
-        working-directory: ./examples/aws
         with:
-          input: ./example.tfvars
-          output: ./terraform.tfvars
+          input: ./examples/aws/example.tfvars
+          output: ./examples/aws/terraform.tfvars
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_ID: ${{secrets.DNS_ZONE_ID}}
 
       - name: Setup Terraform
-        working-directory: ./examples/aws
         uses: hashicorp/setup-terraform@v1
 
       # - name: Terraform Format
       #   id: fmt
+      #   working-directory: ./examples/aws
       #   run: terraform fmt -check
 
       - name: Terraform Init
@@ -120,7 +119,6 @@ jobs:
         continue-on-error: true
 
       - uses: actions/github-script@v3
-        working-directory: ./examples/aws
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
@@ -167,20 +165,19 @@ jobs:
 
       - name: Setup Terraform tfvars
         uses: nowactions/envsubst@v1
-        working-directory: ./examples/azure
         with:
-          input: ./example.tfvars
-          output: ./terraform.tfvars
+          input: ./examples/azure/example.tfvars
+          output: ./examples/azure/terraform.tfvars
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_NAME: ${{secrets.DNS_ZONE_NAME}}
 
       - name: Setup Terraform
-        working-directory: ./examples/azure
         uses: hashicorp/setup-terraform@v1
 
       # - name: Terraform Format
       #   id: fmt
+      #   working-directory: ./examples/azure
       #   run: terraform fmt -check
 
       - name: Terraform Init
@@ -196,7 +193,6 @@ jobs:
         continue-on-error: true
 
       - uses: actions/github-script@v3
-        working-directory: ./examples/azure
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
@@ -231,4 +227,3 @@ jobs:
         working-directory: ./examples/azure
         if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         run: terraform apply -auto-approve
-

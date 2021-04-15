@@ -2,7 +2,7 @@ import os
 from distutils.core import setup
 
 setup(
-    name="script_runner",
+    name="script-runner-api",
     packages=[
         "script_runner",
         "script_runner.api",

@@ -1,6 +1,10 @@
 import os
 from distutils.core import setup
 
+package_path = os.path.dirname(os.path.realpath(__file__))
+with open("VERSION") as version_file:
+    version = version_file.read().strip()
+
 setup(
     name="script-runner-api",
     packages=[
@@ -8,7 +12,7 @@ setup(
         "script_runner.api",
     ],
     scripts=["script_runner/main.py"],
-    version=os.environ.get("SCRIPT_RUNNER_VERSION", "latest"),
+    version=version,
     license="MIT",
     description="Provides an API server + celery worker module for running arbitrary scripts.",
     author="Robert Chu",

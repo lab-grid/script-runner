@@ -10,13 +10,37 @@ jobs:
     name: Publish script-runner to pypi
     runs-on: ubuntu-latest
     steps:
-      - name: Publish a Python distribution to PyPI
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools pipenv
+      #     pipenv lock --dev --requirements > requirements.dev.txt
+      #     pip install -r requirements.txt
+      # - name: Lint with flake8
+      #   run: |
+      #     # stop the build if there are Python syntax errors or undefined names
+      #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+      #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      # - name: Test with pytest
+      #   run: |
+      #     pytest
+      - name: Build python package
+        run: |
+          python setup.py sdist
+      - name: Deploy to PyPI
+        if: success() && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
 
   publish-docker:
+    if: startsWith(github.ref, 'refs/tags')
     name: Publish script-runner to dockerhub
     runs-on: ubuntu-latest
     steps:
@@ -63,8 +87,8 @@ jobs:
       - name: Push to Docker Hub
         uses: docker/build-push-action@v2
         with:
-          context: ./docker
-          file: ./Dockerfile
+          context: ./
+          file: ./docker/Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.prep.outputs.tags }}
@@ -78,7 +102,68 @@ jobs:
             SCRIPT_RUNNER_VERSION=${{ steps.prep.outputs.version }}
             PYTHON_IMAGE_TAG=${{ steps.prep.outputs.pyversion }}
 
+  publish-docker-example:
+    if: startsWith(github.ref, 'refs/tags')
+    name: Build and push script-runner-server-example docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Prepare
+        id: prep
+        run: |
+          DOCKER_IMAGE=labflow/script-runner-example
+          VERSION=edge
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            VERSION=$(echo ${GITHUB_REF#refs/heads/} | sed -r 's#/+#-#g')
+          elif [[ $GITHUB_REF == refs/pull/* ]]; then
+            VERSION=pr-${{ github.event.number }}
+          fi
+          TAGS="${DOCKER_IMAGE}:latest,${DOCKER_IMAGE}:${VERSION}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAGS="$TAGS,${DOCKER_IMAGE}:sha-${GITHUB_SHA::8}"
+          fi
+          echo ::set-output name=version::${VERSION}
+          echo ::set-output name=tags::${TAGS}
+          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo ::set-output name=hashtag::"sha-${GITHUB_SHA::8}"
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Cache Docker layers
+        uses: actions/cache@v2.1.4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./docker/Dockerfile.example
+          builder: ${{ steps.buildx.outputs.name }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.prep.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            SERVER_VERSION=${{ steps.prep.outputs.hashtag }}
+
   deploy-aws-example:
+    if: startsWith(github.ref, 'refs/tags')
     name: Deploy swabseq-analysis-example to AWS
     runs-on: ubuntu-latest
     steps:
@@ -92,8 +177,8 @@ jobs:
       - name: Setup Terraform tfvars
         uses: nowactions/envsubst@v1
         with:
-          input: ./examples/aws/example.tfvars
-          output: ./examples/aws/terraform.tfvars
+          input: ./terraform/aws/example.tfvars
+          output: ./terraform/aws/terraform.tfvars
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_ID: ${{secrets.DNS_ZONE_ID}}
@@ -103,17 +188,17 @@ jobs:
 
       # - name: Terraform Format
       #   id: fmt
-      #   working-directory: ./examples/aws
+      #   working-directory: ./terraform/aws
       #   run: terraform fmt -check
 
       - name: Terraform Init
         id: init
-        working-directory: ./examples/aws
+        working-directory: ./terraform/aws
         run: terraform init
 
       - name: Terraform Plan
         id: plan
-        working-directory: ./examples/aws
+        working-directory: ./terraform/aws
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color
         continue-on-error: true
@@ -150,11 +235,12 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        working-directory: ./examples/aws
+        working-directory: ./terraform/aws
         if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         run: terraform apply -auto-approve
 
   deploy-azure-example:
+    if: startsWith(github.ref, 'refs/tags')
     name: Deploy swabseq-analysis-example to Azure
     runs-on: ubuntu-latest
     steps:
@@ -166,8 +252,8 @@ jobs:
       - name: Setup Terraform tfvars
         uses: nowactions/envsubst@v1
         with:
-          input: ./examples/azure/example.tfvars
-          output: ./examples/azure/terraform.tfvars
+          input: ./terraform/azure/example.tfvars
+          output: ./terraform/azure/terraform.tfvars
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_NAME: ${{secrets.DNS_ZONE_NAME}}
@@ -177,17 +263,17 @@ jobs:
 
       # - name: Terraform Format
       #   id: fmt
-      #   working-directory: ./examples/azure
+      #   working-directory: ./terraform/azure
       #   run: terraform fmt -check
 
       - name: Terraform Init
         id: init
-        working-directory: ./examples/azure
+        working-directory: ./terraform/azure
         run: terraform init
 
       - name: Terraform Plan
         id: plan
-        working-directory: ./examples/azure
+        working-directory: ./terraform/azure
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color
         continue-on-error: true
@@ -224,6 +310,6 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        working-directory: ./examples/azure
+        working-directory: ./terraform/azure
         if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         run: terraform apply -auto-approve

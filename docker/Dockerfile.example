@@ -1,0 +1,84 @@
+ARG SERVER_VERSION=local+container
+ARG SCRIPT_RUNNER_VERSION=local+container
+
+# Start with rocker/tidyverse base image
+FROM rocker/verse:3.6.3
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# get and install bcl2fastq
+RUN cd /tmp \
+    && wget https://www.dropbox.com/s/idi0xfu0thurk7q/bcl2fastq2-v2-20-0-linux-x86-64.zip \
+    && unzip bcl2fastq2-v2-20-0-linux-x86-64.zip -p \
+    | tar xvf bcl2fastq2-v2.20.0.422-Linux-x86_64.rpm -C / usr/local/bin/bcl2fastq \
+    && rm /tmp/bcl2fastq2*
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Install extra *nix utils
+# x11, mesa, glu1 are so we can install paletteer
+RUN apt-get update \
+    && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    pigz \
+    vim \
+    git \
+    less \
+    curl \
+    wget \
+    parallel \
+    python3-pip \
+    bzip2 \
+    libcairo2-dev \
+    libfontconfig1-dev \
+    ca-certificates \
+    dos2unix \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# R Deps
+RUN install2.r --error \
+    BiocManager \
+    seqinr \
+    viridis \
+    GGally \
+    reader \
+    plater \
+    XML \
+    DT \
+    glmnet \
+    speedglm \
+    sandwich \
+    ggbeeswarm \
+    stringdist \
+    argparser \
+    kableExtra
+
+# Install bioconductor packages
+RUN R --slave -e "BiocManager::install(c('savR', 'edgeR', 'qvalue', 'ShortRead', 'Rqc'))"
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# swabseq-analysis script
+RUN git clone git://github.com/lab-grid/swabseq-analysis /app
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Python Env
+WORKDIR /app
+
+RUN pip3 install \
+    pandas \
+    script-runner-api==${SCRIPT_RUNNER_VERSION}
+
+COPY ./entrypoint.sh /entrypoint.sh
+RUN dos2unix /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir /base-rundir
+RUN wget -qO- https://swabseq-analysis-examples.s3-us-west-1.amazonaws.com/bcls/H3FY3K.tar.gz \
+    | tar xvz -C /base-rundir
+
+ENV PYTHONPATH="${RBASE}:${PYTHONPATH}"
+ENV FLASK_APP=script_runner.main:app
+ENV SERVER_VERSION=$SERVER_VERSION
+
+ENTRYPOINT [ "/entrypoint.sh" ]

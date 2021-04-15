@@ -1,8 +1,7 @@
+FROM rocker/verse:3.6.3
+
 ARG SERVER_VERSION=local+container
 ARG SCRIPT_RUNNER_VERSION=local+container
-
-# Start with rocker/tidyverse base image
-FROM rocker/verse:3.6.3
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Install extra *nix utils

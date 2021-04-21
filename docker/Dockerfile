@@ -2,18 +2,12 @@ ARG PYTHON_IMAGE_TAG=alpine
 
 FROM python:${PYTHON_IMAGE_TAG}
 
-ARG SCRIPT_RUNNER_VERSION=local+container
-
 WORKDIR /app
 
-RUN pip install \
-    script-runner-api==${SCRIPT_RUNNER_VERSION}
-
-COPY ./entrypoint.sh /entrypoint.sh
-RUN dos2unix /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY . /script-runner
+RUN pip install /script-runner
+RUN rm -rf /script-runner
 
 ENV FLASK_APP=script_runner.main:app
-ENV SERVER_VERSION=$SERVER_VERSION
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+CMD "python3 -m gunicorn.app.wsgiapp --timeout 240 --bind 0.0.0.0:${PORT} --access-logfile - --error-logfile - --workers 4 ${FLASK_APP}"

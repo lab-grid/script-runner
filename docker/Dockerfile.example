@@ -1,7 +1,6 @@
 FROM rocker/verse:3.6.3
 
 ARG SERVER_VERSION=local+container
-ARG SCRIPT_RUNNER_VERSION=local+container
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Install extra *nix utils
@@ -63,13 +62,13 @@ RUN git clone git://github.com/lab-grid/swabseq-analysis /app
 # Python Env
 WORKDIR /app
 
-RUN pip3 install \
-    pandas \
-    script-runner-api==${SCRIPT_RUNNER_VERSION}
+RUN pip3 install pandas
 
-COPY ./entrypoint.sh /entrypoint.sh
-RUN dos2unix /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY . /script-runner
+RUN pip3 install /script-runner
+RUN rm -rf /script-runner
+
+COPY ./config.json /app/config.json
 
 RUN mkdir /base-rundir
 RUN wget -qO- https://swabseq-analysis-examples.s3-us-west-1.amazonaws.com/bcls/H3FY3K.tar.gz \
@@ -79,4 +78,4 @@ ENV PYTHONPATH="${RBASE}:${PYTHONPATH}"
 ENV FLASK_APP=script_runner.main:app
 ENV SERVER_VERSION=$SERVER_VERSION
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+CMD "python3 -m gunicorn.app.wsgiapp --timeout 240 --bind 0.0.0.0:${PORT} --access-logfile - --error-logfile - --workers 4 ${FLASK_APP}"

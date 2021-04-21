@@ -14,7 +14,7 @@ terraform {
 # IAM -------------------------------------------------------------------------
 
 resource "aws_iam_role" "labflow_role" {
-  name = "${input.stack_name}-role"
+  name = "${var.stack_name}-role"
 
   # May be necessary: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
   # force_detach_policies = true
@@ -47,7 +47,7 @@ EOF
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
-  name = "${input.stack_name}-vpc"
+  name = "${var.stack_name}-vpc"
 
   enable_nat_gateway   = true
   enable_dns_hostnames = true
@@ -61,7 +61,7 @@ module "vpc" {
 module "ecs" {
   source = "terraform-aws-modules/ecs/aws"
 
-  name = "${input.stack_name}-ecs"
+  name = "${var.stack_name}-ecs"
 
   container_insights = true
 

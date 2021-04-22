@@ -327,10 +327,10 @@ jobs:
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=hashtag::"sha-${GITHUB_SHA::8}"
 
-      - name: Configure Azure credentials
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # - name: Configure Azure credentials
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Setup Terraform tfvars
         uses: nowactions/envsubst@v1
@@ -354,6 +354,11 @@ jobs:
         id: init
         working-directory: ./terraform/azure
         run: terraform init
+        env:
+          ARM_CLIENT_ID: ${{secrets.ARM_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.ARM_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.ARM_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.ARM_TENANT_ID}}
 
       - name: Terraform Plan
         id: plan
@@ -361,6 +366,11 @@ jobs:
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color
         continue-on-error: true
+        env:
+          ARM_CLIENT_ID: ${{secrets.ARM_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.ARM_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.ARM_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.ARM_TENANT_ID}}
 
       - uses: actions/github-script@v3
         if: github.event_name == 'pull_request'
@@ -397,3 +407,8 @@ jobs:
         working-directory: ./terraform/azure
         if: (github.event_name == 'release') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         run: terraform apply -auto-approve
+        env:
+          ARM_CLIENT_ID: ${{secrets.ARM_CLIENT_ID}}
+          ARM_CLIENT_SECRET: ${{secrets.ARM_CLIENT_SECRET}}
+          ARM_SUBSCRIPTION_ID: ${{secrets.ARM_SUBSCRIPTION_ID}}
+          ARM_TENANT_ID: ${{secrets.ARM_TENANT_ID}}

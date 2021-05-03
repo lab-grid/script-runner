@@ -5,7 +5,7 @@ variable "location" {
 
 variable "stack_name" {
   type    = string
-  default = "swabseq-analysis-example"
+  default = "script-runner-example"
 }
 
 variable "image_tag" {
@@ -23,22 +23,27 @@ variable "dns_zone_name" {
   description = "Identifier of the Route53 Hosted Zone for this instance of script-runner."
 }
 
+variable "dns_zone_resource_group_name" {
+  type        = string
+  description = "Name of the resource group dns_zone_name is in."
+}
+
 variable "redis_subnet_name" {
   type        = string
   default     = "redis-subnet"
   description = "Name of the redis subnet that will be created."
 }
 
-variable "server_subnet_name" {
-  type        = string
-  default     = "server-subnet"
-  description = "Name of the server subnet that will be created."
-}
-
 variable "worker_subnet_name" {
   type        = string
   default     = "worker-subnet"
   description = "Name of the worker subnet that will be created."
+}
+
+variable "gateway_subnet_name" {
+  type        = string
+  default     = "gateway-subnet"
+  description = "Name of the subnet to create application gateway instances in."
 }
 
 variable "tags" {

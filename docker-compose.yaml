@@ -7,7 +7,10 @@ services:
       context: ./
       args:
         SERVER_VERSION: local+devcontainer
-    command: "python3 -m flask run --host=0.0.0.0 --port=5000"
+    command:
+      - "sh"
+      - "-c"
+      - "python3 -m flask run --host=0.0.0.0 --port=5000"
     environment:
       - FLASK_ENV=development
       - PORT=5000
@@ -27,7 +30,10 @@ services:
       context: ./
       args:
         SERVER_VERSION: local+devcontainer
-    command: "python3 -m celery -A script_runner.analysis worker"
+    command:
+      - "sh"
+      - "-c"
+      - "python3 -m celery -A script_runner.analysis worker"
     environment:
       - "CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379"
       - "CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379"

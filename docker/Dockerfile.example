@@ -74,8 +74,9 @@ RUN mkdir /base-rundir
 RUN wget -qO- https://swabseq-analysis-examples.s3-us-west-1.amazonaws.com/bcls/H3FY3K.tar.gz \
     | tar xvz -C /base-rundir
 
+ENV COMMAND_RUNDIR_BASE=/base-rundir
 ENV PYTHONPATH="${RBASE}:${PYTHONPATH}"
 ENV FLASK_APP=script_runner.main:app
 ENV SERVER_VERSION=$SERVER_VERSION
 
-CMD "python3 -m gunicorn.app.wsgiapp --timeout 240 --bind 0.0.0.0:${PORT} --access-logfile - --error-logfile - --workers 4 ${FLASK_APP}"
+CMD ["sh", "-c", "python3 -m gunicorn.app.wsgiapp --timeout 240 --bind 0.0.0.0:${PORT} --access-logfile - --error-logfile - --workers 4 ${FLASK_APP}"]

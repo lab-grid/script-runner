@@ -1,5 +1,17 @@
+terraform {
+  required_providers {
+    acme = {
+      source = "vancluever/acme"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
+}
+
+provider "acme" {
+  server_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
 }
 
 terraform {
@@ -22,21 +34,43 @@ resource "azurerm_resource_group" "swabseq_analysis_example" {
 
 # VPC/ECS ---------------------------------------------------------------------
 
-module "vnet" {
-  source              = "Azure/vnet/azurerm"
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.stack_name}-vnet"
   resource_group_name = azurerm_resource_group.swabseq_analysis_example.name
+  location            = var.location
   address_space       = ["10.0.0.0/16"]
-  subnet_prefixes     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  subnet_names        = [var.redis_subnet_name, var.server_subnet_name, var.worker_subnet_name]
+  tags                = var.tags
+}
 
-  # subnet_service_endpoints = {
-  #   subnet2 = ["Microsoft.Storage", "Microsoft.Sql"],
-  #   subnet3 = ["Microsoft.AzureActiveDirectory"]
-  # }
+resource "azurerm_subnet" "redis_subnet" {
+  name                 = var.redis_subnet_name
+  resource_group_name  = azurerm_resource_group.swabseq_analysis_example.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
 
-  tags = var.tags
+resource "azurerm_subnet" "worker_subnet" {
+  name                 = var.worker_subnet_name
+  resource_group_name  = azurerm_resource_group.swabseq_analysis_example.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.3.0/24"]
 
-  depends_on = [azurerm_resource_group.example]
+  delegation {
+    name = "${var.stack_name}-script-runner-worker-delegation"
+    service_delegation {
+      name    = "Microsoft.ContainerInstance/containerGroups"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
+}
+
+resource "azurerm_subnet" "gateway_subnet" {
+  name                 = var.gateway_subnet_name
+  resource_group_name  = azurerm_resource_group.swabseq_analysis_example.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.4.0/24"]
+
+  service_endpoints = ["Microsoft.KeyVault"]
 }
 
 
@@ -48,17 +82,18 @@ module "swabseq_analysis" {
   location            = var.location
   resource_group_name = azurerm_resource_group.swabseq_analysis_example.name
 
-  redis_subnet_id  = module.vnet.vnet_subnets[0]
-  server_subnet_id = module.vnet.vnet_subnets[1]
-  worker_subnet_id = module.vnet.vnet_subnets[2]
+  redis_subnet_id  = azurerm_subnet.redis_subnet.id
+  worker_subnet_id = azurerm_subnet.worker_subnet.id
+  gateway_subnet_id = azurerm_subnet.gateway_subnet.id
 
   stack_name = var.stack_name
 
   auth_provider = "none"
 
-  image     = "labflow/swabseq-analysis-server-example"
+  image     = "labflow/script-runner-example"
   image_tag = var.image_tag
 
-  dns_subdomain = var.dns_subdomain
-  dns_zone_name = var.dns_zone_name
+  dns_subdomain                = var.dns_subdomain
+  dns_zone_name                = var.dns_zone_name
+  dns_zone_resource_group_name = var.dns_zone_resource_group_name
 }

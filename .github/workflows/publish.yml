@@ -239,7 +239,7 @@ jobs:
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_ID: ${{secrets.DNS_ZONE_ID}}
-          IMAGE_TAG: ${{steps.plan.outputs.hashtag}}
+          IMAGE_TAG: ${{steps.plan.outputs.version}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
@@ -340,7 +340,8 @@ jobs:
         env:
           DNS_SUBDOMAIN: ${{secrets.DNS_SUBDOMAIN}}
           DNS_ZONE_NAME: ${{secrets.DNS_ZONE_NAME}}
-          IMAGE_TAG: ${{steps.plan.outputs.hashtag}}
+          DNS_ZONE_RESOURCE_GROUP_NAME: ${{secrets.DNS_ZONE_RESOURCE_GROUP_NAME}}
+          IMAGE_TAG: ${{steps.plan.outputs.version}}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1

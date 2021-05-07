@@ -1,17 +1,5 @@
-terraform {
-  required_providers {
-    acme = {
-      source = "vancluever/acme"
-    }
-  }
-}
-
 provider "azurerm" {
   features {}
-}
-
-provider "acme" {
-  server_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
 }
 
 terraform {
@@ -47,6 +35,9 @@ resource "azurerm_subnet" "redis_subnet" {
   resource_group_name  = azurerm_resource_group.swabseq_analysis_example.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
+
+  enforce_private_link_endpoint_network_policies = true
+  enforce_private_link_service_network_policies  = false
 }
 
 resource "azurerm_subnet" "worker_subnet" {
@@ -82,9 +73,8 @@ module "swabseq_analysis" {
   location            = var.location
   resource_group_name = azurerm_resource_group.swabseq_analysis_example.name
 
-  redis_subnet_id  = azurerm_subnet.redis_subnet.id
-  worker_subnet_id = azurerm_subnet.worker_subnet.id
-  gateway_subnet_id = azurerm_subnet.gateway_subnet.id
+  redis_subnet_id   = azurerm_subnet.redis_subnet.id
+  worker_subnet_id  = azurerm_subnet.worker_subnet.id
 
   stack_name = var.stack_name
 

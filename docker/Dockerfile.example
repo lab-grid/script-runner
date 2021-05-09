@@ -57,11 +57,11 @@ RUN R --slave -e "BiocManager::install(c('savR', 'edgeR', 'qvalue', 'ShortRead',
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # swabseq-analysis script
 RUN git clone git://github.com/lab-grid/swabseq-analysis /app
+WORKDIR /app
+RUN git checkout 221990c0521b8896fb0cf0bc5668996989bb2ab6
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Python Env
-WORKDIR /app
-
 RUN pip3 install pandas
 
 COPY . /script-runner

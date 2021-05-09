@@ -10,7 +10,9 @@
         "--threads",
         "8",
         "--season",
-        "$SEASON"
+        "winter",
+        "--skipDownload",
+        "TRUE"
     ],
     "inputs": {
         "path_args": [
@@ -20,12 +22,7 @@
                 "path_regex_match_group": 1
             }
         ],
-        "query_args": [
-            {
-                "env_var_name": "SEASON",
-                "query_var_name": "season"
-            }
-        ],
+        "query_args": [],
         "body_args": []
     },
     "outputs": {

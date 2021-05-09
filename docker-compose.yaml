@@ -21,8 +21,6 @@ services:
       - "CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379"
     ports:
       - 5000:5000
-    volumes:
-      - ./:/app
   worker:
     image: labflow/script-runner-example:latest
     build:
@@ -37,9 +35,6 @@ services:
     environment:
       - "CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379"
       - "CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379"
-      - "COMMAND_RUNDIR_BASE=/base-rundir"
-    volumes:
-      - ./:/app
   redis:
     image: redis:6-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD}

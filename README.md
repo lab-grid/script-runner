@@ -11,15 +11,14 @@ started. Script runner exposes an API with two main endpoints:
 Arguments to the script command can be passed via the request path, query, or JSON
 body.
 
-Script runner relies on two running containers:
+Script runner relies on two running containers (see Usage section below on how to deploy these):
 
 - Server - Responsible for responding to API requests and validating auth headers.
 - Worker - Responsible for running the script whenever a new task is started.
 
-Script runner is built for running scripts that take a long period of time and uses
-worker nodes from above to launch jobs. Communication between the server and worker
-nodes happens through a Redis instance allowing multiple script invocations to be
-running simultaneously
+Script runner can handle scripts that take a long period of time to run. The worker nodes launch jobs. 
+Communication between the server and worker nodes happens through a Redis instance, allowing multiple script 
+invocations to be running simultaneously
 
 
 ## Configuration

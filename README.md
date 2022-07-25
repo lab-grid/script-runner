@@ -63,7 +63,7 @@ select whether or not you would like to have the parameter specified in the requ
 
 ![image](https://user-images.githubusercontent.com/1199079/114761896-f417b300-9d15-11eb-9aa0-c498ae727eaa.png)
 
-Path parameters are defined using regular expressions (https://www.w3schools.com/python/python_regex.asp)
+Path parameters are defined using [regular expressions](https://www.scaler.com/topics/python/regular-expression-in-python/)  (https://www.w3schools.com/python/python_regex.asp)
 
 ```
 ...
